@@ -150,7 +150,7 @@ EOF
     warn "not changed. To float the window, add this line to ${HYPR_MAIN}:"
     echo "     ${REQUIRE_LINE}"
   fi
-  have hyprctl && hyprctl reload >/dev/null 2>&1 || true
+  if have hyprctl; then hyprctl reload >/dev/null 2>&1 || true; fi
 }
 
 window_rules() {
@@ -202,8 +202,8 @@ Categories=Utility;
 Keywords=service;systemd;docker;compose;start;stop;launcher;dienst;
 StartupWMClass=${APP}
 EOF
-  have update-desktop-database && update-desktop-database "${DATA}/applications" || true
-  have gtk-update-icon-cache && gtk-update-icon-cache -q -t "${DATA}/icons/hicolor" || true
+  if have update-desktop-database; then update-desktop-database "${DATA}/applications" || true; fi
+  if have gtk-update-icon-cache; then gtk-update-icon-cache -q -t "${DATA}/icons/hicolor" || true; fi
   ok "${BIN_DIR}/${APP}"
   ok "${DESKTOP}"
   [[ ":${PATH}:" == *":${BIN_DIR}:"* ]] || warn "${BIN_DIR} is not in PATH (the launcher entry works anyway)"
@@ -216,9 +216,9 @@ uninstall() {
   if [[ -f "${HYPR_MAIN}" ]] && grep -qxF "${REQUIRE_LINE}" "${HYPR_MAIN}"; then
     sed -i -e "\|^${REQUIRE_COMMENT}\$|d" -e '/^require("svcdeck")$/d' "${HYPR_MAIN}"
     ok "removed ${REQUIRE_LINE} from ${HYPR_MAIN}"
-    have hyprctl && hyprctl reload >/dev/null 2>&1 || true
+    if have hyprctl; then hyprctl reload >/dev/null 2>&1 || true; fi
   fi
-  have update-desktop-database && update-desktop-database "${DATA}/applications" || true
+  if have update-desktop-database; then update-desktop-database "${DATA}/applications" || true; fi
   ok "removed (configuration in ${CONF}/${APP} is kept)"
 }
 
