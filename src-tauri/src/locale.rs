@@ -43,3 +43,21 @@ pub fn is_german() -> bool {
 pub fn tr<'a>(en: &'a str, de: &'a str) -> &'a str {
     if is_german() { de } else { en }
 }
+
+#[cfg(test)]
+pub static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn override_beats_system_language() {
+        let _guard = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        set_override("de");
+        assert_eq!(tr("Start", "Starten"), "Starten");
+        set_override("en");
+        assert_eq!(tr("Start", "Starten"), "Start");
+        set_override("auto");
+    }
+}

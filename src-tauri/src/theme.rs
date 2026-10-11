@@ -34,8 +34,12 @@ fn parse(raw: &str) -> Theme {
     let mut colors = BTreeMap::new();
     let mut mode = String::from("dark");
     for line in raw.lines() {
-        let Some((key, val)) = line.split_once('=') else { continue };
-        let Some(key) = key.trim().strip_prefix("dcol_") else { continue };
+        let Some((key, val)) = line.split_once('=') else {
+            continue;
+        };
+        let Some(key) = key.trim().strip_prefix("dcol_") else {
+            continue;
+        };
         let val = val.trim().trim_matches('"');
         if key == "mode" {
             mode = val.to_string();
@@ -76,4 +80,28 @@ pub fn watch(app: AppHandle) {
             }
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_hex_colors_and_mode() {
+        let raw = "dcol_mode=\"light\"\ndcol_pry1=\"C8A5C8\"\ndcol_pry1_rgba=\"rgba(200,165,200,\\1)\"\ndcol_1xa4=\"C27AC2\"\n";
+        let t = parse(raw);
+        assert!(t.available);
+        assert_eq!(t.mode, "light");
+        assert_eq!(t.colors.get("pry1").map(String::as_str), Some("#C8A5C8"));
+        assert_eq!(t.colors.get("1xa4").map(String::as_str), Some("#C27AC2"));
+        // rgba variants are not colors for the UI
+        assert!(!t.colors.contains_key("pry1_rgba"));
+    }
+
+    #[test]
+    fn ignores_garbage_and_reports_unavailable() {
+        let t = parse("hello\ndcol_pry1=\"nothex\"\nfoo=bar\n");
+        assert!(!t.available);
+        assert_eq!(t.mode, "dark");
+    }
 }

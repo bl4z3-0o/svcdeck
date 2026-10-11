@@ -73,7 +73,11 @@ pub fn ensure_askpass() -> Result<PathBuf, String> {
     Ok(path)
 }
 
-fn find<'a>(cfg: &'a Config, app_id: &str, action_id: &str) -> Result<(&'a App, &'a Action), String> {
+fn find<'a>(
+    cfg: &'a Config,
+    app_id: &str,
+    action_id: &str,
+) -> Result<(&'a App, &'a Action), String> {
     let app = cfg
         .apps
         .iter()
@@ -83,7 +87,13 @@ fn find<'a>(cfg: &'a Config, app_id: &str, action_id: &str) -> Result<(&'a App, 
         .actions
         .iter()
         .find(|a| a.id == action_id)
-        .ok_or_else(|| format!("{}: {} {action_id}", app.name, tr("unknown action", "unbekannte Aktion")))?;
+        .ok_or_else(|| {
+            format!(
+                "{}: {} {action_id}",
+                app.name,
+                tr("unknown action", "unbekannte Aktion")
+            )
+        })?;
     Ok((app, action))
 }
 
@@ -157,7 +167,10 @@ pub fn run(app_id: &str, action_id: &str) -> Result<ActionResult, String> {
                 "{}\nprintf '\\n[%s %s] ' {} {}\nread -rsn1",
                 action.command,
                 shell_quote(&action.label),
-                shell_quote(tr("finished, press any key to close", "beendet, Taste zum Schließen"))
+                shell_quote(tr(
+                    "finished, press any key to close",
+                    "beendet, Taste zum Schließen"
+                ))
             );
             let mut child = base_command(program, &dir, &askpass)
                 .args(rest)
@@ -165,7 +178,12 @@ pub fn run(app_id: &str, action_id: &str) -> Result<ActionResult, String> {
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
                 .spawn()
-                .map_err(|e| format!("{} '{program}': {e}", tr("Could not start terminal", "Terminal startet nicht")))?;
+                .map_err(|e| {
+                    format!(
+                        "{} '{program}': {e}",
+                        tr("Could not start terminal", "Terminal startet nicht")
+                    )
+                })?;
             // Reap the child so no zombie process is left behind
             std::thread::spawn(move || {
                 let _ = child.wait();
@@ -219,4 +237,77 @@ pub fn check_command(app: &App, command: &str, timeout: Duration) -> bool {
 
 fn shell_quote(s: &str) -> String {
     format!("'{}'", s.replace('\'', r"'\''"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn app_in(dir: &str) -> App {
+        App {
+            id: "t".into(),
+            name: "T".into(),
+            url: String::new(),
+            icon: String::new(),
+            glyph: String::new(),
+            dir: dir.into(),
+            health: String::new(),
+            health_command: String::new(),
+            actions: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn shell_quote_escapes_single_quotes() {
+        assert_eq!(shell_quote("plain"), "'plain'");
+        assert_eq!(shell_quote("it's"), r"'it'\''s'");
+    }
+
+    #[test]
+    fn status_command_uses_exit_code() {
+        let app = app_in("/");
+        assert!(check_command(&app, "true", Duration::from_secs(5)));
+        assert!(!check_command(&app, "false", Duration::from_secs(5)));
+        assert!(!check_command(&app, "exit 3", Duration::from_secs(5)));
+    }
+
+    #[test]
+    fn status_command_times_out() {
+        let app = app_in("/");
+        let start = Instant::now();
+        assert!(!check_command(&app, "sleep 30", Duration::from_millis(300)));
+        assert!(
+            start.elapsed() < Duration::from_secs(5),
+            "timeout did not kill the command"
+        );
+    }
+
+    #[test]
+    fn status_command_runs_in_app_dir() {
+        let app = app_in("/tmp");
+        assert!(check_command(
+            &app,
+            "[ \"$PWD\" = /tmp ]",
+            Duration::from_secs(5)
+        ));
+    }
+
+    #[test]
+    fn missing_dir_is_an_error() {
+        assert!(work_dir(&app_in("/definitely/not/here")).is_err());
+        assert!(!check_command(
+            &app_in("/definitely/not/here"),
+            "true",
+            Duration::from_secs(5)
+        ));
+    }
+
+    #[test]
+    fn askpass_script_is_valid_bash() {
+        let status = Command::new("bash")
+            .args(["-n", "-c", ASKPASS])
+            .status()
+            .expect("bash available");
+        assert!(status.success());
+    }
 }

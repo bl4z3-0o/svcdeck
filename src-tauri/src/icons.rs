@@ -27,7 +27,8 @@ fn mime(path: &Path) -> Option<&'static str> {
 fn icon_roots() -> Vec<PathBuf> {
     let home = crate::config::home_dir();
     let mut roots = vec![home.join(".local/share/icons"), home.join(".icons")];
-    let data_dirs = std::env::var("XDG_DATA_DIRS").unwrap_or_else(|_| "/usr/local/share:/usr/share".into());
+    let data_dirs =
+        std::env::var("XDG_DATA_DIRS").unwrap_or_else(|_| "/usr/local/share:/usr/share".into());
     for d in data_dirs.split(':').filter(|d| !d.is_empty()) {
         let p = PathBuf::from(d).join("icons");
         if !roots.contains(&p) {
@@ -47,18 +48,23 @@ fn current_theme() -> Option<String> {
         .args(["get", "org.gnome.desktop.interface", "icon-theme"])
         .output()
         && out.status.success()
-            && let Some(t) = clean(&String::from_utf8_lossy(&out.stdout)) {
-                return Some(t);
-            }
+        && let Some(t) = clean(&String::from_utf8_lossy(&out.stdout))
+    {
+        return Some(t);
+    }
     let cfg = crate::config::home_dir().join(".config");
-    for (file, key) in [("gtk-3.0/settings.ini", "gtk-icon-theme-name"), ("kdeglobals", "Theme")] {
+    for (file, key) in [
+        ("gtk-3.0/settings.ini", "gtk-icon-theme-name"),
+        ("kdeglobals", "Theme"),
+    ] {
         if let Ok(raw) = std::fs::read_to_string(cfg.join(file)) {
             for line in raw.lines() {
                 if let Some((k, v)) = line.split_once('=')
                     && k.trim() == key
-                        && let Some(t) = clean(v) {
-                            return Some(t);
-                        }
+                    && let Some(t) = clean(v)
+                {
+                    return Some(t);
+                }
             }
         }
     }
@@ -66,7 +72,11 @@ fn current_theme() -> Option<String> {
 }
 
 fn theme_dirs(theme: &str) -> Vec<PathBuf> {
-    icon_roots().into_iter().map(|r| r.join(theme)).filter(|p| p.is_dir()).collect()
+    icon_roots()
+        .into_iter()
+        .map(|r| r.join(theme))
+        .filter(|p| p.is_dir())
+        .collect()
 }
 
 fn inherits(theme: &str) -> Vec<String> {
@@ -74,7 +84,11 @@ fn inherits(theme: &str) -> Vec<String> {
         if let Ok(raw) = std::fs::read_to_string(dir.join("index.theme")) {
             for line in raw.lines() {
                 if let Some(v) = line.strip_prefix("Inherits=") {
-                    return v.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
+                    return v
+                        .split(',')
+                        .map(|s| s.trim().to_string())
+                        .filter(|s| !s.is_empty())
+                        .collect();
                 }
             }
         }
@@ -132,9 +146,13 @@ fn lookup_by_name(name: &str) -> Option<PathBuf> {
         for dir in theme_dirs(theme) {
             // Covers both layouts: <size>/<context>/ (Papirus, Adwaita) and
             // <context>/<size>/ (Breeze)
-            let Ok(level1) = std::fs::read_dir(&dir) else { continue };
+            let Ok(level1) = std::fs::read_dir(&dir) else {
+                continue;
+            };
             for a in level1.flatten().filter(|e| e.path().is_dir()) {
-                let Ok(level2) = std::fs::read_dir(a.path()) else { continue };
+                let Ok(level2) = std::fs::read_dir(a.path()) else {
+                    continue;
+                };
                 for b in level2.flatten().filter(|e| e.path().is_dir()) {
                     for f in &files {
                         let p = b.path().join(f);
@@ -168,8 +186,13 @@ pub fn load(spec: &str) -> Result<String, String> {
         lookup_by_name(spec)
             .ok_or_else(|| format!("{} '{spec}'", tr("Icon not found:", "Icon nicht gefunden:")))?
     };
-    let mime = mime(&path)
-        .ok_or_else(|| format!("{} {}", tr("Unsupported image format:", "Bildformat nicht unterstützt:"), path.display()))?;
+    let mime = mime(&path).ok_or_else(|| {
+        format!(
+            "{} {}",
+            tr("Unsupported image format:", "Bildformat nicht unterstützt:"),
+            path.display()
+        )
+    })?;
     let meta = std::fs::metadata(&path).map_err(|e| format!("{}: {e}", path.display()))?;
     if meta.len() > MAX_BYTES {
         return Err(format!("{} > 4 MB", path.display()));
