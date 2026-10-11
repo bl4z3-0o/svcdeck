@@ -10,22 +10,69 @@
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
       "extra-files": [
-        { "type": "toml", "path": "src-tauri/Cargo.toml", "jsonpath": "$.package.version" },
-        { "type": "json", "path": "src-tauri/tauri.conf.json", "jsonpath": "$.version" },
-        { "type": "generic", "path": "packaging/aur/svcdeck/PKGBUILD" },
-        { "type": "generic", "path": "packaging/aur/svcdeck-bin/PKGBUILD" }
+        {
+          "type": "toml",
+          "path": "src-tauri/Cargo.toml",
+          "jsonpath": "$.package.version"
+        },
+        {
+          "type": "json",
+          "path": "src-tauri/tauri.conf.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "generic",
+          "path": "packaging/aur/svcdeck/PKGBUILD"
+        },
+        {
+          "type": "generic",
+          "path": "packaging/aur/svcdeck-bin/PKGBUILD"
+        }
       ],
       "changelog-sections": [
-        { "type": "feat", "section": "Features" },
-        { "type": "fix", "section": "Bug Fixes" },
-        { "type": "perf", "section": "Performance" },
-        { "type": "deps", "section": "Dependencies" },
-        { "type": "docs", "section": "Documentation", "hidden": true },
-        { "type": "ci", "section": "CI", "hidden": true },
-        { "type": "chore", "section": "Miscellaneous", "hidden": true },
-        { "type": "test", "section": "Tests", "hidden": true },
-        { "type": "refactor", "section": "Refactoring", "hidden": true }
-      ]
+        {
+          "type": "feat",
+          "section": "Features"
+        },
+        {
+          "type": "fix",
+          "section": "Bug Fixes"
+        },
+        {
+          "type": "perf",
+          "section": "Performance"
+        },
+        {
+          "type": "deps",
+          "section": "Dependencies"
+        },
+        {
+          "type": "docs",
+          "section": "Documentation",
+          "hidden": true
+        },
+        {
+          "type": "ci",
+          "section": "CI",
+          "hidden": true
+        },
+        {
+          "type": "chore",
+          "section": "Miscellaneous",
+          "hidden": true
+        },
+        {
+          "type": "test",
+          "section": "Tests",
+          "hidden": true
+        },
+        {
+          "type": "refactor",
+          "section": "Refactoring",
+          "hidden": true
+        }
+      ],
+      "initial-version": "0.1.0"
     }
   }
 }
