@@ -1,0 +1,13 @@
+# Abhaengigkeiten
+/node_modules
+
+# Build-Ausgabe der Oberflaeche (Vite)
+/dist
+
+# Rust/Tauri: siehe src-tauri/.gitignore
+
+# Sonstiges
+.DS_Store
+*.log
+*.tsbuildinfo
+.env*
