@@ -4,6 +4,10 @@
 
 [English](README.md)
 
+[![CI](https://github.com/bl4z3-0o/svcdeck/actions/workflows/ci.yml/badge.svg)](https://github.com/bl4z3-0o/svcdeck/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/bl4z3-0o/svcdeck)](https://github.com/bl4z3-0o/svcdeck/releases/latest)
+[![AUR](https://img.shields.io/aur/version/svcdeck-bin?label=AUR)](https://aur.archlinux.org/packages/svcdeck-bin)
+
 ![SvcDeck](docs/screenshot.png)
 
 SvcDeck ist ein kleines schwebendes Fenster mit einer Kachel pro App oder Dienst: eine systemd-Unit, ein Docker-Container, ein Compose-Projekt oder ein beliebiges Shell-Skript. Linksklick öffnet die App im Browser, Rechtsklick zeigt ihre Aktionen (Start, Stop, Status, Logs oder was du selbst festlegst).
@@ -16,7 +20,16 @@ SvcDeck ist ein kleines schwebendes Fenster mit einer Kachel pro App oder Dienst
 
 ## Installation
 
-SvcDeck richtet sich derzeit an Arch Linux und Ableger (CachyOS, EndeavourOS, Manjaro). Andere Distributionen funktionieren, wenn die [Tauri-Voraussetzungen](https://tauri.app/start/prerequisites/) installiert sind. Ein AUR-Paket ist geplant.
+**Arch Linux und Ableger** (CachyOS, EndeavourOS, Manjaro) aus dem AUR:
+
+```bash
+yay -S svcdeck-bin    # fertig gebaut
+yay -S svcdeck        # aus dem Quellcode
+```
+
+**Debian/Ubuntu und Fedora:** `.deb` und `.rpm` aus dem [neuesten Release](https://github.com/bl4z3-0o/svcdeck/releases/latest).
+
+**Aus dem Quellcode** (jede Distribution mit den [Tauri-Voraussetzungen](https://tauri.app/start/prerequisites/)):
 
 ```bash
 sudo pacman -S --needed base-devel webkit2gtk-4.1 gtk3 librsvg openssl nodejs npm rustup
@@ -28,6 +41,10 @@ cd svcdeck
 ```
 
 `install.sh` installiert nur für den aktuellen Benutzer (ohne Root): `~/.local/bin/svcdeck`, ein Icon und einen Starter-Eintrag. Danach **SvcDeck** im App-Starter öffnen.
+
+### Updates
+
+SvcDeck fragt beim Start bei GitHub nach einem neueren Release und zeigt dann einen Hinweis. Installiert wird nie etwas automatisch: aktualisiere über den Paketmanager (`yay -Syu`) oder bei Quellcode-Installationen mit `git pull && ./install.sh`. Die Prüfung schickt eine einzige Anfrage an `api.github.com` (GitHub sieht dabei deine IP-Adresse) und lässt sich unter Einstellungen → Allgemein abschalten.
 
 | Option | Wirkung |
 |---|---|
@@ -65,6 +82,8 @@ Kurz zusammengefasst:
 SvcDeck führt genau die Befehle aus deiner Konfiguration aus, mit deinen Benutzerrechten. Genau dafür ist es da, also behandle `apps.json` wie ein Shell-Skript: Nutze nur Konfigurationen, die du verstehst, und übernimm sie nicht aus unbekannten Quellen. Die Oberfläche schickt nie freie Befehle ans Backend; Aktionen werden per ID in der gespeicherten Datei nachgeschlagen. Statusprüfungen fragen nie nach einem Passwort.
 
 ## Entwicklung
+
+Prüfungen und Commit-Regeln stehen in [CONTRIBUTING.md](CONTRIBUTING.md). Abhängigkeiten hält Renovate aktuell, Releases entstehen mit release-please.
 
 ```bash
 npm install
