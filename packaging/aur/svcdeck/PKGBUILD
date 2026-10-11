@@ -1,0 +1,48 @@
+# Maintainer: BL4ZE <34445001+bl4z3-0o@users.noreply.github.com>
+pkgname=svcdeck
+pkgver=0.1.0 # x-release-please-version
+pkgrel=1
+pkgdesc="Start, stop and open the services you would otherwise control from a terminal"
+arch=('x86_64')
+url="https://github.com/bl4z3-0o/svcdeck"
+license=('GPL-3.0-or-later')
+depends=('webkit2gtk-4.1' 'gtk3' 'hicolor-icon-theme')
+makedepends=('cargo' 'nodejs' 'npm')
+optdepends=('zenity: password dialog for sudo actions'
+            'kdialog: password dialog for sudo actions on KDE'
+            'rofi: password dialog for sudo actions'
+            'docker: Docker and Compose templates')
+conflicts=('svcdeck-bin')
+install=svcdeck.install
+source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+prepare() {
+  cd "${pkgname}-${pkgver}"
+  export RUSTUP_TOOLCHAIN=stable
+  npm ci --no-audit --no-fund
+  cargo fetch --manifest-path src-tauri/Cargo.toml --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "${pkgname}-${pkgver}"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=src-tauri/target
+  npx tauri build --no-bundle
+}
+
+check() {
+  cd "${pkgname}-${pkgver}"
+  export RUSTUP_TOOLCHAIN=stable
+  npm test
+  cargo test --release --manifest-path src-tauri/Cargo.toml
+}
+
+package() {
+  cd "${pkgname}-${pkgver}"
+  install -Dm755 src-tauri/target/release/svcdeck "${pkgdir}/usr/bin/svcdeck"
+  install -Dm644 packaging/svcdeck.desktop "${pkgdir}/usr/share/applications/svcdeck.desktop"
+  install -Dm644 app-icon.svg "${pkgdir}/usr/share/icons/hicolor/scalable/apps/svcdeck.svg"
+  install -Dm644 src-tauri/icons/128x128.png "${pkgdir}/usr/share/icons/hicolor/128x128/apps/svcdeck.png"
+  install -Dm644 README.md "${pkgdir}/usr/share/doc/svcdeck/README.md"
+}

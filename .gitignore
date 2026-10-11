@@ -11,3 +11,4 @@
 *.log
 *.tsbuildinfo
 .env*
+/dist-release

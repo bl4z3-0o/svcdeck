@@ -1,0 +1,13 @@
+post_install() {
+  cat <<'EOF'
+==> SvcDeck: start it from your app launcher.
+    On tiling compositors let the window float (class "svcdeck"), e.g.
+      Hyprland (Lua):  hl.window_rule({ match = { class = "^(svcdeck)$" }, float = true, center = true })
+      Sway:            for_window [app_id="^svcdeck(-term)?$"] floating enable
+    See https://github.com/bl4z3-0o/svcdeck#tiling-compositors
+EOF
+}
+
+post_upgrade() {
+  :
+}

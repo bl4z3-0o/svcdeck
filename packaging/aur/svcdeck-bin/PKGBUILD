@@ -1,0 +1,27 @@
+# Maintainer: BL4ZE <34445001+bl4z3-0o@users.noreply.github.com>
+pkgname=svcdeck-bin
+pkgver=0.1.0 # x-release-please-version
+pkgrel=1
+pkgdesc="Start, stop and open the services you would otherwise control from a terminal (prebuilt)"
+arch=('x86_64')
+url="https://github.com/bl4z3-0o/svcdeck"
+license=('GPL-3.0-or-later')
+depends=('webkit2gtk-4.1' 'gtk3' 'hicolor-icon-theme')
+optdepends=('zenity: password dialog for sudo actions'
+            'kdialog: password dialog for sudo actions on KDE'
+            'rofi: password dialog for sudo actions'
+            'docker: Docker and Compose templates')
+provides=('svcdeck')
+conflicts=('svcdeck')
+install=svcdeck.install
+source=("svcdeck-${pkgver}-x86_64-linux.tar.gz::${url}/releases/download/v${pkgver}/svcdeck-${pkgver}-x86_64-linux.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+  cd "svcdeck-${pkgver}"
+  install -Dm755 svcdeck "${pkgdir}/usr/bin/svcdeck"
+  install -Dm644 svcdeck.desktop "${pkgdir}/usr/share/applications/svcdeck.desktop"
+  install -Dm644 svcdeck.svg "${pkgdir}/usr/share/icons/hicolor/scalable/apps/svcdeck.svg"
+  install -Dm644 svcdeck.png "${pkgdir}/usr/share/icons/hicolor/128x128/apps/svcdeck.png"
+  install -Dm644 README.md "${pkgdir}/usr/share/doc/svcdeck/README.md"
+}

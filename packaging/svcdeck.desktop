@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=SvcDeck
+GenericName=Service launcher
+GenericName[de]=Dienste-Starter
+Comment=Start, stop and open the services you would otherwise control from a terminal
+Comment[de]=Dienste starten, stoppen und öffnen, die du sonst im Terminal steuerst
+Exec=svcdeck
+Icon=svcdeck
+Terminal=false
+Categories=Utility;
+Keywords=service;systemd;docker;compose;start;stop;launcher;dienst;
+StartupWMClass=svcdeck
