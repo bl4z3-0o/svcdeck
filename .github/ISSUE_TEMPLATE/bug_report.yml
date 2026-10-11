@@ -1,0 +1,39 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: SvcDeck version
+      description: Settings → General, at the bottom
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Installed via
+      options: [AUR (svcdeck), AUR (svcdeck-bin), .deb, .rpm, install.sh, other]
+    validations:
+      required: true
+  - type: input
+    id: desktop
+    attributes:
+      label: Distribution and desktop
+      placeholder: "CachyOS, Hyprland 0.56 (HyDE)"
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant part of apps.json (optional)
+      description: Remove passwords, tokens and private paths first.
+      render: json

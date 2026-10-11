@@ -1,0 +1,76 @@
+# Tests, lints and build on every push to main, on Renovate branches and on
+# pull requests. Renovate only opens a PR once this passed on its branch
+# (prCreation: status-success in renovate.json).
+name: CI
+
+on:
+  push:
+    branches: [main, "renovate/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  frontend:
+    name: Frontend (svelte-check, vitest, build)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+
+  rust:
+    name: Rust (fmt, clippy, test)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: System libraries for Tauri
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libssl-dev libxdo-dev \
+            libayatana-appindicator3-dev build-essential file
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      # tauri::generate_context! embeds ../dist, so the UI must be built first
+      - run: npm ci --no-audit --no-fund && npm run build
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: cargo fmt
+        working-directory: src-tauri
+        run: cargo fmt --check
+      - name: cargo clippy
+        working-directory: src-tauri
+        run: cargo clippy --all-targets -- -D warnings
+      - name: cargo test
+        working-directory: src-tauri
+        run: cargo test
+
+  scripts:
+    name: Shell scripts
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - run: shellcheck install.sh packaging/make-tarball.sh
+      - run: bash -n packaging/aur/svcdeck/PKGBUILD && bash -n packaging/aur/svcdeck-bin/PKGBUILD
