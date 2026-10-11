@@ -85,6 +85,9 @@ pub struct Config {
     /// "auto" (system language), "en" or "de"
     #[serde(default = "default_auto")]
     pub language: String,
+    /// Ask GitHub for a newer release on start
+    #[serde(default = "default_true")]
+    pub update_check: bool,
     #[serde(default)]
     pub apps: Vec<App>,
 }
@@ -99,6 +102,10 @@ fn default_columns() -> u32 {
 
 fn default_auto() -> String {
     "auto".into()
+}
+
+fn default_true() -> bool {
+    true
 }
 
 pub fn home_dir() -> PathBuf {
@@ -142,6 +149,7 @@ fn default_config() -> Config {
         terminal: Vec::new(),
         theme: default_auto(),
         language: default_auto(),
+        update_check: true,
         apps: vec![App {
             id: "system".into(),
             name: tr("System (example)", "System (Beispiel)").into(),
@@ -193,7 +201,10 @@ fn migrate_legacy() -> Result<Option<Config>, String> {
     if old_icons.is_dir() {
         let new_icons = new_dir.join("icons");
         fs::create_dir_all(&new_icons).map_err(|e| e.to_string())?;
-        for entry in fs::read_dir(&old_icons).map_err(|e| e.to_string())?.flatten() {
+        for entry in fs::read_dir(&old_icons)
+            .map_err(|e| e.to_string())?
+            .flatten()
+        {
             let target = new_icons.join(entry.file_name());
             if entry.path().is_file() && !target.exists() {
                 fs::copy(entry.path(), &target).map_err(|e| e.to_string())?;
@@ -225,8 +236,13 @@ pub fn load() -> Result<Config, String> {
     let path = config_path();
     let cfg = if path.exists() {
         let raw = fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-        serde_json::from_str(&raw)
-            .map_err(|e| format!("{} {}: {e}", path.display(), tr("is invalid", "ist ungültig")))?
+        serde_json::from_str(&raw).map_err(|e| {
+            format!(
+                "{} {}: {e}",
+                path.display(),
+                tr("is invalid", "ist ungültig")
+            )
+        })?
     } else if let Some(cfg) = migrate_legacy()? {
         cfg
     } else {
@@ -245,7 +261,11 @@ fn validate(cfg: &Config) -> Result<(), String> {
             return Err(format!("{}: {}", app.name, tr("missing ID", "ID fehlt")));
         }
         if !ids.insert(app.id.as_str()) {
-            return Err(format!("{} '{}'", tr("Duplicate app ID", "Doppelte App-ID"), app.id));
+            return Err(format!(
+                "{} '{}'",
+                tr("Duplicate app ID", "Doppelte App-ID"),
+                app.id
+            ));
         }
         let mut aids = std::collections::HashSet::new();
         for a in &app.actions {
@@ -253,7 +273,10 @@ fn validate(cfg: &Config) -> Result<(), String> {
                 return Err(format!(
                     "{}: {} '{}'",
                     app.name,
-                    tr("action ID missing or duplicate", "Aktions-ID fehlt oder ist doppelt"),
+                    tr(
+                        "action ID missing or duplicate",
+                        "Aktions-ID fehlt oder ist doppelt"
+                    ),
                     a.id
                 ));
             }
@@ -267,7 +290,10 @@ pub fn save(cfg: &Config) -> Result<(), String> {
     validate(cfg)?;
     let dir = config_dir();
     fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
-    write_private(&config_path(), serde_json::to_string_pretty(cfg).map_err(|e| e.to_string())?)?;
+    write_private(
+        &config_path(),
+        serde_json::to_string_pretty(cfg).map_err(|e| e.to_string())?,
+    )?;
     crate::locale::set_override(&cfg.language);
     Ok(())
 }
@@ -287,4 +313,82 @@ fn write_private(path: &Path, json: String) -> Result<(), String> {
         f.write_all(b"\n").map_err(|e| e.to_string())?;
     }
     fs::rename(&tmp, path).map_err(|e| format!("{}: {e}", path.display()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn example_config_is_valid() {
+        let cfg = default_config();
+        validate(&cfg).expect("example config validates");
+        assert_eq!(cfg.apps.len(), 1);
+        assert!(
+            cfg.apps[0].url.is_empty(),
+            "example has no URL, left click runs the first action"
+        );
+    }
+
+    #[test]
+    fn rejects_duplicate_ids() {
+        let mut cfg = default_config();
+        cfg.apps.push(cfg.apps[0].clone());
+        assert!(validate(&cfg).is_err());
+
+        let mut cfg = default_config();
+        let first = cfg.apps[0].actions[0].clone();
+        cfg.apps[0].actions.push(first);
+        assert!(validate(&cfg).is_err());
+    }
+
+    #[test]
+    fn old_files_without_new_fields_still_load() {
+        // Shape of a "Local AI Hub" config: no theme/language/healthCommand
+        let raw = r#"{"title":"Local AI","columns":2,"terminal":["kitty"],
+            "apps":[{"id":"a","name":"A","url":"http://127.0.0.1:1","actions":[]}]}"#;
+        let cfg: Config = serde_json::from_str(raw).expect("parses");
+        assert_eq!(cfg.theme, "auto");
+        assert_eq!(cfg.language, "auto");
+        assert!(cfg.update_check, "update check defaults to on");
+        assert!(cfg.apps[0].health_command.is_empty());
+    }
+
+    #[test]
+    fn migrates_legacy_config_once() {
+        let _guard = crate::locale::TEST_LOCK
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let root = std::env::temp_dir().join(format!("svcdeck-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        let legacy = root.join(LEGACY_DIR_NAME);
+        fs::create_dir_all(legacy.join("icons")).unwrap();
+        fs::write(legacy.join("icons/a.svg"), "<svg/>").unwrap();
+        let icon = legacy.join("icons/a.svg").to_string_lossy().into_owned();
+        let raw = format!(
+            r#"{{"title":"Local AI","columns":2,"terminal":["kitty","--class","local-ai-hub-term"],
+               "apps":[{{"id":"a","name":"A","url":"","icon":"{icon}","actions":[]}}]}}"#
+        );
+        fs::write(legacy.join("apps.json"), raw).unwrap();
+
+        // SAFETY: only this test touches XDG_CONFIG_HOME, serialized by TEST_LOCK
+        unsafe { std::env::set_var("XDG_CONFIG_HOME", &root) };
+        let cfg = load().expect("migrates");
+        unsafe { std::env::remove_var("XDG_CONFIG_HOME") };
+
+        assert_eq!(cfg.title, "SvcDeck", "old default title is replaced");
+        assert_eq!(cfg.terminal[2], "svcdeck-term");
+        let new_icon = root.join(APP_DIR_NAME).join("icons/a.svg");
+        assert_eq!(cfg.apps[0].icon, new_icon.to_string_lossy());
+        assert!(new_icon.is_file(), "icon copied");
+        assert!(
+            root.join(APP_DIR_NAME).join("apps.json").is_file(),
+            "new config written"
+        );
+        assert!(
+            legacy.join("apps.json").is_file(),
+            "old config left in place"
+        );
+        let _ = fs::remove_dir_all(&root);
+    }
 }

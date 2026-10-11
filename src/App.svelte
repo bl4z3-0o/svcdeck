@@ -5,7 +5,8 @@
   import { api } from "$lib/api";
   import { applyTheme, onSystemSchemeChange } from "$lib/theme";
   import { setLanguage, t } from "$lib/i18n.svelte";
-  import type { Action, App, Config, Theme } from "$lib/types";
+  import type { Action, App, AppInfo, Config, Theme } from "$lib/types";
+  import { checkForUpdate, dismiss, isDismissed, type Update } from "$lib/update";
   import type { MenuItem, SheetEntry } from "$lib/ui";
   import Tile from "./components/Tile.svelte";
   import ContextMenu from "./components/ContextMenu.svelte";
@@ -49,6 +50,9 @@
   let confirm = $state<ConfirmState | null>(null);
   let view = $state<"grid" | "settings">("grid");
   let editId = $state<string | null>(null);
+  let info = $state<AppInfo | null>(null);
+  let update = $state<Update | null>(null);
+  const BANNER_H = 64;
 
   const cols = $derived(
     config ? Math.max(1, Math.min(config.columns || 2, Math.max(config.apps.length, 1))) : 2,
@@ -152,10 +156,33 @@
   $effect(() => {
     if (!config) return;
     const g = gridSize(config);
+    const extra = update ? BANNER_H : 0;
     if (view === "settings") resize(SETTINGS_SIZE.w, SETTINGS_SIZE.h);
-    else if (sheetOpen) resize(Math.max(g.w, SHEET_SIZE.w), Math.max(g.h, SHEET_SIZE.h));
-    else resize(g.w, g.h);
+    else if (sheetOpen) resize(Math.max(g.w, SHEET_SIZE.w), Math.max(g.h + extra, SHEET_SIZE.h));
+    else resize(g.w, g.h + extra);
   });
+
+  // --- Update check (once per start, notify only) -------------------------
+  let updateChecked = false;
+  $effect(() => {
+    if (!config || updateChecked) return;
+    updateChecked = true;
+    const enabled = config.updateCheck;
+    api
+      .appInfo()
+      .then(async (i) => {
+        info = i;
+        if (!enabled) return;
+        const u = await checkForUpdate(i.version);
+        if (u && !isDismissed(u.version)) update = u;
+      })
+      .catch(() => {});
+  });
+
+  function dismissUpdate() {
+    if (update) dismiss(update.version);
+    update = null;
+  }
 
   // --- Status dots --------------------------------------------------------
   // The backend reads the saved config and runs each app's status check
@@ -370,6 +397,23 @@
 
     {#if error}
       <div class="banner" role="alert">{error}</div>
+    {/if}
+
+    {#if update}
+      <div class="update" role="status">
+        <div class="update-text">
+          <strong>{t("upd.available", { version: update.version })}</strong>
+          {#if info?.install === "package"}
+            <small>{t("upd.hintPackage")}</small>
+          {:else if info?.install === "user"}
+            <small>{t("upd.hintUser")}</small>
+          {/if}
+        </div>
+        <button class="pill" onclick={() => update && openUrl(update.url)}>{t("upd.details")}</button>
+        <button class="icon-btn" aria-label={t("upd.dismiss")} onclick={dismissUpdate}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
+      </div>
     {/if}
 
     <section class="grid" style:grid-template-columns="repeat({cols}, 1fr)" aria-busy={anyBusy}>

@@ -17,7 +17,7 @@ fn prefix_for(program: &str) -> Option<Vec<&'static str>> {
         "alacritty" => vec!["--class", TERM_CLASS, "-e"],
         "wezterm" => vec!["start", "--class", TERM_CLASS, "--"],
         // Ghostty requires a reverse-DNS style class
-        "ghostty" => vec!["--class=io.github.bl4z3_0o.SvcDeck.term", "-e"],
+        "ghostty" => vec!["--class=io.github.bl4z3-0o.SvcDeck.term", "-e"],
         "konsole" => vec!["-e"],
         "gnome-terminal" | "kgx" | "ptyxis" => vec!["--"],
         "xfce4-terminal" => vec!["-x"],
@@ -62,17 +62,61 @@ pub fn detect() -> Option<Vec<String>> {
         let t = t.trim();
         if !t.is_empty() && in_path(t) {
             let prefix = prefix_for(t).unwrap_or_else(|| vec!["-e"]);
-            return Some(std::iter::once(t.to_string()).chain(prefix.into_iter().map(String::from)).collect());
+            return Some(
+                std::iter::once(t.to_string())
+                    .chain(prefix.into_iter().map(String::from))
+                    .collect(),
+            );
         }
     }
     CANDIDATES.iter().find(|c| in_path(c)).map(|c| {
         std::iter::once(c.to_string())
-            .chain(prefix_for(c).unwrap_or_default().into_iter().map(String::from))
+            .chain(
+                prefix_for(c)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(String::from),
+            )
             .collect()
     })
 }
 
 /// The configured invocation, or the detected one if empty.
 pub fn resolve(configured: &[String]) -> Option<Vec<String>> {
-    if configured.is_empty() { detect() } else { Some(configured.to_vec()) }
+    if configured.is_empty() {
+        detect()
+    } else {
+        Some(configured.to_vec())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn known_terminals_get_their_own_syntax() {
+        assert_eq!(prefix_for("kitty"), Some(vec!["--class", TERM_CLASS]));
+        assert_eq!(
+            prefix_for("/usr/bin/alacritty"),
+            Some(vec!["--class", TERM_CLASS, "-e"])
+        );
+        assert_eq!(prefix_for("gnome-terminal"), Some(vec!["--"]));
+        assert_eq!(prefix_for("xfce4-terminal"), Some(vec!["-x"]));
+        assert_eq!(prefix_for("xdg-terminal-exec"), Some(vec![]));
+        assert_eq!(prefix_for("my-own-term"), None);
+    }
+
+    #[test]
+    fn configured_terminal_wins() {
+        let configured = vec!["foot".to_string(), "--app-id".to_string(), "x".to_string()];
+        assert_eq!(resolve(&configured), Some(configured.clone()));
+    }
+
+    #[test]
+    fn every_candidate_has_a_prefix() {
+        for c in CANDIDATES {
+            assert!(prefix_for(c).is_some(), "{c} has no prefix");
+        }
+    }
 }

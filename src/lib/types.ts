@@ -31,7 +31,13 @@ export interface Config {
   terminal: string[];
   theme: ThemePref;
   language: LangPref;
+  updateCheck: boolean;
   apps: App[];
+}
+
+export interface AppInfo {
+  version: string;
+  install: "package" | "user" | "other";
 }
 
 export interface ActionResult {

@@ -108,6 +108,15 @@ const en = {
   "act.status": "Status",
   "act.logs": "Follow logs",
   "act.new": "New action",
+
+  "upd.available": "SvcDeck {version} is available.",
+  "upd.details": "What's new",
+  "upd.dismiss": "Dismiss",
+  "upd.hintPackage": "Update with your package manager, e.g. yay -Syu",
+  "upd.hintUser": "Update with git pull and ./install.sh in the SvcDeck folder",
+  "set.updateCheck": "Check for updates on start",
+  "set.updateCheckHint": "Asks GitHub for the latest release. Nothing is installed automatically.",
+  "set.version": "Version {version}",
 };
 
 type Key = keyof typeof en;
@@ -219,6 +228,15 @@ const de: Record<Key, string> = {
   "act.status": "Status",
   "act.logs": "Logs folgen",
   "act.new": "Neue Aktion",
+
+  "upd.available": "SvcDeck {version} ist verfügbar.",
+  "upd.details": "Was ist neu",
+  "upd.dismiss": "Ausblenden",
+  "upd.hintPackage": "Mit dem Paketmanager aktualisieren, z. B. yay -Syu",
+  "upd.hintUser": "Mit git pull und ./install.sh im SvcDeck-Ordner aktualisieren",
+  "set.updateCheck": "Beim Start nach Updates suchen",
+  "set.updateCheckHint": "Fragt GitHub nach dem neuesten Release. Installiert wird nichts automatisch.",
+  "set.version": "Version {version}",
 };
 
 const dicts = { en, de };

@@ -26,6 +26,7 @@
   let saving = $state(false);
   let path = $state("");
   let detected = $state<string | null>(null);
+  let version = $state("");
 
   // "New app" form
   let tplKind = $state<TemplateKind>("systemd-user");
@@ -36,6 +37,7 @@
   $effect(() => {
     api.configPath().then((p) => (path = p)).catch(() => {});
     api.detectedTerminal().then((d) => (detected = d)).catch(() => {});
+    api.appInfo().then((i) => (version = i.version)).catch(() => {});
   });
 
   const appIndex = $derived(draft.apps.findIndex((a) => a.id === selected));
@@ -220,8 +222,18 @@
           />
           <small>{t("set.terminalHint", { detected: detected ?? t("set.terminalNone") })}</small>
         </div>
+        <div class="field check">
+          <label>
+            <input type="checkbox" bind:checked={draft.updateCheck} />
+            {t("set.updateCheck")}
+          </label>
+          <small>{t("set.updateCheckHint")}</small>
+        </div>
         <p class="note">{t("set.storedIn", { path })}</p>
         <p class="note warn-note">{t("set.security")}</p>
+        {#if version}
+          <p class="note">{t("set.version", { version })}</p>
+        {/if}
       {/if}
 
       {#if selected === NEW}

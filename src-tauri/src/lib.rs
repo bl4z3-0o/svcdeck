@@ -28,6 +28,33 @@ fn config_path() -> String {
     config::config_path().to_string_lossy().into_owned()
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppInfo {
+    version: String,
+    /// "package" (installed by a package manager under /usr), "user"
+    /// (install.sh, ~/.local) or "other" (e.g. a development build)
+    install: &'static str,
+}
+
+/// Version and how SvcDeck was installed, for the update hint.
+#[tauri::command]
+fn app_info(app: tauri::AppHandle) -> AppInfo {
+    let exe = std::env::current_exe().unwrap_or_default();
+    let home = config::home_dir();
+    let install = if exe.starts_with("/usr/") {
+        "package"
+    } else if exe.starts_with(home.join(".local")) {
+        "user"
+    } else {
+        "other"
+    };
+    AppInfo {
+        version: app.package_info().version.to_string(),
+        install,
+    }
+}
+
 /// Terminal that would be used when none is configured (shown as hint).
 #[tauri::command]
 fn detected_terminal() -> Option<String> {
@@ -79,9 +106,15 @@ fn health_addr(app: &config::App) -> Option<String> {
         return None;
     }
     // [IPv6]:port, host:port or host
-    let has_port = authority.rsplit_once(':').is_some_and(|(_, p)| p.chars().all(|c| c.is_ascii_digit()))
+    let has_port = authority
+        .rsplit_once(':')
+        .is_some_and(|(_, p)| p.chars().all(|c| c.is_ascii_digit()))
         && !authority.ends_with(']');
-    Some(if has_port { authority.to_string() } else { format!("{authority}:{default_port}") })
+    Some(if has_port {
+        authority.to_string()
+    } else {
+        format!("{authority}:{default_port}")
+    })
 }
 
 /// Status of every app: command (exit 0) > port > nothing.
@@ -94,11 +127,24 @@ async fn check_health() -> Result<Vec<Health>, String> {
         .map(|app| {
             tauri::async_runtime::spawn_blocking(move || {
                 let running = if !app.health_command.trim().is_empty() {
-                    Some(actions::check_command(&app, &app.health_command, Duration::from_secs(3)))
-                } else { health_addr(&app).map(|addr| addr.to_socket_addrs().is_ok_and(|mut it| {
-                        it.any(|sa| TcpStream::connect_timeout(&sa, Duration::from_millis(400)).is_ok())
-                    })) };
-                Health { id: app.id, running }
+                    Some(actions::check_command(
+                        &app,
+                        &app.health_command,
+                        Duration::from_secs(3),
+                    ))
+                } else {
+                    health_addr(&app).map(|addr| {
+                        addr.to_socket_addrs().is_ok_and(|mut it| {
+                            it.any(|sa| {
+                                TcpStream::connect_timeout(&sa, Duration::from_millis(400)).is_ok()
+                            })
+                        })
+                    })
+                };
+                Health {
+                    id: app.id,
+                    running,
+                }
             })
         })
         .collect();
@@ -125,7 +171,9 @@ async fn fit_window(window: tauri::WebviewWindow, width: f64, height: f64) -> Re
     let (w, h) = (width.round() as i64, height.round() as i64);
     tauri::async_runtime::spawn_blocking(move || {
         let selector = format!("class:^({WINDOW_CLASS})$");
-        let lua = format!("hl.dsp.window.resize({{window = \"{selector}\", x = {w}, y = {h}, exact = true}})");
+        let lua = format!(
+            "hl.dsp.window.resize({{window = \"{selector}\", x = {w}, y = {h}, exact = true}})"
+        );
         let ok = std::process::Command::new("hyprctl")
             .args(["dispatch", &lua])
             .output()
@@ -133,7 +181,11 @@ async fn fit_window(window: tauri::WebviewWindow, width: f64, height: f64) -> Re
             .unwrap_or(false);
         if !ok {
             let _ = std::process::Command::new("hyprctl")
-                .args(["dispatch", "resizewindowpixel", &format!("exact {w} {h},{selector}")])
+                .args([
+                    "dispatch",
+                    "resizewindowpixel",
+                    &format!("exact {w} {h},{selector}"),
+                ])
                 .output();
         }
     })
@@ -159,6 +211,7 @@ pub fn run() {
             save_config,
             config_path,
             detected_terminal,
+            app_info,
             run_action,
             get_theme,
             load_icon,
@@ -175,4 +228,62 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("SvcDeck failed to start");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn app(url: &str, health: &str) -> config::App {
+        config::App {
+            id: "a".into(),
+            name: "A".into(),
+            url: url.into(),
+            icon: String::new(),
+            glyph: String::new(),
+            dir: String::new(),
+            health: health.into(),
+            health_command: String::new(),
+            actions: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn health_address_from_url() {
+        assert_eq!(
+            health_addr(&app("http://127.0.0.1:3000/x", "")).as_deref(),
+            Some("127.0.0.1:3000")
+        );
+        assert_eq!(
+            health_addr(&app("http://localhost", "")).as_deref(),
+            Some("localhost:80")
+        );
+        assert_eq!(
+            health_addr(&app("https://example.org/a?b#c", "")).as_deref(),
+            Some("example.org:443")
+        );
+        assert_eq!(
+            health_addr(&app("http://user:pw@host:8080", "")).as_deref(),
+            Some("host:8080")
+        );
+        assert_eq!(
+            health_addr(&app("http://[::1]:9000/", "")).as_deref(),
+            Some("[::1]:9000")
+        );
+        assert_eq!(
+            health_addr(&app("http://[::1]/", "")).as_deref(),
+            Some("[::1]:80")
+        );
+    }
+
+    #[test]
+    fn explicit_health_wins_and_odd_urls_give_none() {
+        assert_eq!(
+            health_addr(&app("http://a:1", "b:2")).as_deref(),
+            Some("b:2")
+        );
+        assert_eq!(health_addr(&app("", "")), None);
+        assert_eq!(health_addr(&app("ftp://host", "")), None);
+        assert_eq!(health_addr(&app("not a url", "")), None);
+    }
 }
