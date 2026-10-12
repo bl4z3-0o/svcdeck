@@ -85,7 +85,7 @@ jobs:
         run: echo "::notice::AUR_SSH_PRIVATE_KEY not set, ${{ matrix.package }} not published"
       - name: Publish ${{ matrix.package }}
         if: env.HAS_AUR == 'true'
-        uses: KSXGitHub/github-actions-deploy-aur@v4
+        uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
         with:
           pkgname: ${{ matrix.package }}
           pkgbuild: packaging/aur/${{ matrix.package }}/PKGBUILD
