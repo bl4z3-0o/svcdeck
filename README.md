@@ -106,7 +106,9 @@ Everything can be edited in the app (gear icon). The file is `~/.config/svcdeck/
 | `theme` | `auto` (HyDE colors or system), `light`, `dark` |
 | `language` | `auto` (system), `en`, `de` |
 
-**Start all / Stop all** (right-click on the background) run the action with the ID `start` or `stop` of every app; stop runs in reverse order.
+**Start all / Stop all** (▶ and ■ in the title bar, or right-click on the background) run the action with the ID `start` or `stop` of every app; stop runs in reverse order.
+
+**Selection:** the check box button in the title bar (or Ctrl+click on a tile) turns on selection mode. Click tiles to select them, then start or stop only those from the bar at the bottom. Esc ends the selection.
 
 ### Security
 

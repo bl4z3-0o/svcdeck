@@ -75,7 +75,9 @@ Kurz zusammengefasst:
 - `actions[].mode`: `capture` (Ausgabe in SvcDeck) oder `terminal` (eigenes Terminalfenster)
 - `terminal`: leer = automatisch erkannt (`$TERMINAL`, kitty, foot, alacritty, wezterm, ghostty, konsole, gnome-terminal, …)
 
-**Alle starten / Alle stoppen** (Rechtsklick auf den Hintergrund) führen in jeder App die Aktion mit der ID `start` bzw. `stop` aus; Stop läuft in umgekehrter Reihenfolge.
+**Alle starten / Alle stoppen** (▶ und ■ in der Titelleiste oder Rechtsklick auf den Hintergrund) führen in jeder App die Aktion mit der ID `start` bzw. `stop` aus; Stop läuft in umgekehrter Reihenfolge.
+
+**Auswahl:** Der Häkchen-Knopf in der Titelleiste (oder Strg+Klick auf eine Kachel) schaltet den Auswahlmodus ein. Kacheln anklicken, um sie auszuwählen, dann über die Leiste unten nur diese starten oder stoppen. Esc beendet die Auswahl.
 
 ### Sicherheit
 

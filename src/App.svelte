@@ -52,13 +52,24 @@
   let editId = $state<string | null>(null);
   let info = $state<AppInfo | null>(null);
   let update = $state<Update | null>(null);
+  /** IDs of selected apps; null = not in selection mode */
+  let selection = $state<string[] | null>(null);
   const BANNER_H = 64;
+  const SELBAR_H = 52;
 
   const cols = $derived(
     config ? Math.max(1, Math.min(config.columns || 2, Math.max(config.apps.length, 1))) : 2,
   );
   const anyBusy = $derived(Object.values(busy).some(Boolean));
   const sheetOpen = $derived(sheet !== null);
+  const hasAction = (id: string) => config?.apps.some((a) => a.actions.some((x) => x.id === id)) ?? false;
+  const canStart = $derived(hasAction("start"));
+  const canStop = $derived(hasAction("stop"));
+  const selectedApps = $derived(
+    selection && config ? config.apps.filter((a) => selection!.includes(a.id)) : [],
+  );
+  const selCanStart = $derived(selectedApps.some((a) => a.actions.some((x) => x.id === "start")));
+  const selCanStop = $derived(selectedApps.some((a) => a.actions.some((x) => x.id === "stop")));
 
   function gridSize(cfg: Config) {
     const c = Math.max(1, Math.min(cfg.columns || 2, Math.max(cfg.apps.length, 1)));
@@ -156,7 +167,7 @@
   $effect(() => {
     if (!config) return;
     const g = gridSize(config);
-    const extra = update ? BANNER_H : 0;
+    const extra = (update ? BANNER_H : 0) + (selection ? SELBAR_H : 0);
     if (view === "settings") resize(SETTINGS_SIZE.w, SETTINGS_SIZE.h);
     else if (sheetOpen) resize(Math.max(g.w, SHEET_SIZE.w), Math.max(g.h + extra, SHEET_SIZE.h));
     else resize(g.w, g.h + extra);
@@ -269,8 +280,12 @@
 
   /** Same action ID across all apps (e.g. "start"); stop runs in reverse */
   function runAll(actionId: string, title: string) {
-    if (!config) return;
-    let jobs = config.apps.flatMap((app) => {
+    if (config) runFor(config.apps, actionId, title);
+  }
+
+  /** Same action ID across the given apps, in config order; stop runs in reverse */
+  function runFor(apps: App[], actionId: string, title: string) {
+    let jobs = apps.flatMap((app) => {
       const action = app.actions.find((a) => a.id === actionId);
       return action ? [{ app, action }] : [];
     });
@@ -286,9 +301,30 @@
     if (app.url) openUrl(app.url).catch((e) => (error = String(e)));
   }
 
-  /** Left click: open the address, or run the first action if there is none */
-  function activate(app: App) {
-    if (app.url) open(app);
+  // --- Selection ----------------------------------------------------------
+  function toggleSelected(id: string) {
+    const cur = selection ?? [];
+    selection = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
+  }
+
+  function toggleSelectAll() {
+    if (!config || !selection) return;
+    selection = selection.length === config.apps.length ? [] : config.apps.map((a) => a.id);
+  }
+
+  // Drop IDs of apps that no longer exist (e.g. after editing the config)
+  $effect(() => {
+    const ids = config?.apps.map((a) => a.id) ?? [];
+    if (selection && selection.some((id) => !ids.includes(id))) {
+      selection = selection.filter((id) => ids.includes(id));
+    }
+  });
+
+  /** Left click: open the address, or run the first action if there is none.
+   *  In selection mode (or with Ctrl/Shift) it toggles the selection instead. */
+  function activate(app: App, e?: MouseEvent) {
+    if (selection || e?.ctrlKey || e?.metaKey || e?.shiftKey) toggleSelected(app.id);
+    else if (app.url) open(app);
     else if (app.actions[0]) runAppAction(app, app.actions[0]);
   }
 
@@ -344,6 +380,7 @@
       { kind: "item", label: t("menu.startAll"), icon: "▶", onSelect: () => runAll("start", t("menu.startAll")) },
       { kind: "item", label: t("menu.stopAll"), icon: "■", danger: true, onSelect: () => runAll("stop", t("menu.stopAll")) },
       { kind: "item", label: t("menu.statusAll"), icon: "ⓘ", onSelect: () => runAll("status", t("menu.statusAll")) },
+      { kind: "item", label: t("menu.select"), icon: "☑", onSelect: () => (selection = selection ?? []) },
       { kind: "separator" },
       { kind: "item", label: t("menu.settings"), icon: "⚙", onSelect: () => openSettings(null) },
       { kind: "item", label: t("menu.reload"), icon: "↻", onSelect: () => reload() },
@@ -356,6 +393,7 @@
     if (confirm) confirm = null;
     else if (menu) menu = null;
     else if (sheet) sheet = null;
+    else if (selection) selection = null;
   }
 
   async function saveSettings(next: Config) {
@@ -381,6 +419,36 @@
     <header class="titlebar" data-tauri-drag-region>
       <h1 data-tauri-drag-region>{config?.title ?? "SvcDeck"}</h1>
       <div class="titlebar-actions">
+        <button
+          class="icon-btn"
+          aria-label={t("menu.startAll")}
+          title={t("menu.startAll")}
+          disabled={!canStart}
+          onclick={() => runAll("start", t("menu.startAll"))}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5Z" /></svg>
+        </button>
+        <button
+          class="icon-btn"
+          aria-label={t("menu.stopAll")}
+          title={t("menu.stopAll")}
+          disabled={!canStop}
+          onclick={() => runAll("stop", t("menu.stopAll"))}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="6.5" width="11" height="11" rx="1.5" /></svg>
+        </button>
+        <button
+          class="icon-btn"
+          aria-label={t("sel.mode")}
+          title={t("sel.mode")}
+          aria-pressed={selection !== null}
+          onclick={() => (selection = selection ? null : [])}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="4" />
+            <path d="m8.5 12.5 2.5 2.5 4.5-5" />
+          </svg>
+        </button>
         <button class="icon-btn" aria-label={t("app.settings")} onclick={() => openSettings(null)}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
@@ -423,11 +491,54 @@
           icon={icons[app.id]}
           running={app.id in health ? health[app.id] : undefined}
           busy={!!busy[app.id]}
-          onActivate={() => activate(app)}
+          selected={selection ? selection.includes(app.id) : undefined}
+          onActivate={(e) => activate(app, e)}
           onMenu={(x, y) => (menu = { x, y, app })}
         />
       {/each}
     </section>
+
+    {#if selection}
+      <div class="selbar" role="toolbar" aria-label={t("sel.count", { n: selection.length })}>
+        <button
+          class="icon-btn"
+          aria-label={config && selection.length === config.apps.length ? t("sel.none") : t("sel.all")}
+          title={config && selection.length === config.apps.length ? t("sel.none") : t("sel.all")}
+          onclick={toggleSelectAll}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="4" />
+            {#if config && selection.length === config.apps.length}
+              <path d="m8.5 12.5 2.5 2.5 4.5-5" />
+            {:else if selection.length > 0}
+              <path d="M8.5 12h7" />
+            {/if}
+          </svg>
+        </button>
+        <span class="selbar-count">{t("sel.count", { n: selection.length })}</span>
+        <button
+          class="pill primary"
+          title={t("sel.startTitle")}
+          aria-label={t("sel.startTitle")}
+          disabled={!selCanStart}
+          onclick={() => runFor(selectedApps, "start", t("sel.startTitle"))}
+        >
+          ▶<span class="selbar-label"> {t("sel.start")}</span>
+        </button>
+        <button
+          class="pill danger"
+          title={t("sel.stopTitle")}
+          aria-label={t("sel.stopTitle")}
+          disabled={!selCanStop}
+          onclick={() => runFor(selectedApps, "stop", t("sel.stopTitle"))}
+        >
+          ■<span class="selbar-label"> {t("sel.stop")}</span>
+        </button>
+        <button class="icon-btn" aria-label={t("sel.done")} title={t("sel.done")} onclick={() => (selection = null)}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
+      </div>
+    {/if}
     {#if config && config.apps.length === 0}
       <p class="empty">{t("app.empty")}</p>
     {/if}
