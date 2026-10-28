@@ -14,6 +14,7 @@ SvcDeck is a small floating window with one tile per app or service: a systemd u
 
 - **Any command.** Every action is a bash command run in the app's folder. Templates for systemd (user and system), Docker and Docker Compose fill in start/stop/restart/status/logs for you.
 - **Status at a glance.** A dot shows whether a service is running, checked by a command (exit code 0) or a TCP port.
+- **Several at once.** Start or stop all services from the title bar, or select a few tiles and start or stop only those. Services already in that state are skipped.
 - **sudo without a terminal.** Commands that need root ask for the password in a graphical dialog (rofi, zenity, kdialog or ssh-askpass).
 - **Fits your desktop.** Follows your HyDE/wallbash colors live on Hyprland, otherwise the system light/dark preference. English and German.
 - **Small.** Tauri 2 (Rust) with a Svelte 5 UI, a single binary of a few MB using the system WebKitGTK.
