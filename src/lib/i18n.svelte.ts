@@ -48,6 +48,8 @@ const en = {
   "sheet.fail": "failed",
   "sheet.done": "Done.",
   "sheet.exit": "Exited with code {code}",
+  "sheet.allRunning": "Everything is already running, nothing to start.",
+  "sheet.allStopped": "Everything is already stopped, nothing to stop.",
 
   "set.title": "Settings",
   "set.cancel": "Cancel",
@@ -181,6 +183,8 @@ const de: Record<Key, string> = {
   "sheet.fail": "Fehler",
   "sheet.done": "Fertig.",
   "sheet.exit": "Beendet mit Code {code}",
+  "sheet.allRunning": "Alles läuft bereits, nichts zu starten.",
+  "sheet.allStopped": "Alles ist bereits gestoppt, nichts zu stoppen.",
 
   "set.title": "Einstellungen",
   "set.cancel": "Abbrechen",

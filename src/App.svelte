@@ -283,14 +283,32 @@
     if (config) runFor(config.apps, actionId, title);
   }
 
-  /** Same action ID across the given apps, in config order; stop runs in reverse */
+  /** Same action ID across the given apps, in config order; stop runs in reverse.
+   *  Start skips apps already running, stop skips apps already stopped. Apps
+   *  without a status check (or not checked yet) are always included. */
   function runFor(apps: App[], actionId: string, title: string) {
+    const skip = (app: App) =>
+      (actionId === "start" && health[app.id] === true) || (actionId === "stop" && health[app.id] === false);
     let jobs = apps.flatMap((app) => {
       const action = app.actions.find((a) => a.id === actionId);
-      return action ? [{ app, action }] : [];
+      return action && !skip(app) ? [{ app, action }] : [];
     });
     if (actionId === "stop") jobs = jobs.reverse();
-    if (jobs.length === 0) return;
+    if (jobs.length === 0) {
+      if (actionId === "start" || actionId === "stop") {
+        sheet = {
+          title,
+          entries: [
+            {
+              label: title,
+              state: "ok",
+              output: t(actionId === "start" ? "sheet.allRunning" : "sheet.allStopped"),
+            },
+          ],
+        };
+      }
+      return;
+    }
     const needsConfirm = jobs.some((j) => j.action.confirm);
     withConfirm(needsConfirm, t("confirm.all", { title, apps: jobs.map((j) => j.app.name).join(", ") }), title, () =>
       runSequence(title, jobs),
