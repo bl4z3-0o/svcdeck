@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "SvcDeck",
   "mainBinaryName": "svcdeck",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "identifier": "io.github.bl4z3-0o.SvcDeck",
   "build": {
     "frontendDist": "../dist",

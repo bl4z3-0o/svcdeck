@@ -1,6 +1,6 @@
 [package]
 name = "svcdeck"
-version = "0.1.0"
+version = "0.2.0"
 description = "Start, stop and open the services you would otherwise control from a terminal"
 authors = ["BL4ZE"]
 license = "GPL-3.0-or-later"
