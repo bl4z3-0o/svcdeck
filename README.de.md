@@ -14,6 +14,7 @@ SvcDeck ist ein kleines schwebendes Fenster mit einer Kachel pro App oder Dienst
 
 - **Jeder Befehl.** Jede Aktion ist ein bash-Befehl, der im Ordner der App läuft. Vorlagen für systemd (Benutzer und System), Docker und Docker Compose füllen Start, Stop, Neustart, Status und Logs automatisch aus.
 - **Status auf einen Blick.** Ein Punkt zeigt, ob ein Dienst läuft. Geprüft wird per Befehl (Rückgabewert 0) oder per TCP-Port.
+- **Mehrere auf einmal.** Alle Dienste über die Titelleiste starten oder stoppen, oder einzelne Kacheln auswählen und nur diese starten oder stoppen. Dienste, die schon im Zielzustand sind, werden übersprungen.
 - **sudo ohne Terminal.** Befehle, die Root brauchen, fragen das Passwort in einem grafischen Dialog ab (rofi, zenity, kdialog oder ssh-askpass).
 - **Passt zum Desktop.** Übernimmt unter Hyprland live die HyDE/wallbash-Farben, sonst die Hell/Dunkel-Einstellung des Systems. Englisch und Deutsch.
 - **Klein.** Tauri 2 (Rust) mit Svelte-5-Oberfläche, ein einziges Programm von wenigen MB mit dem WebKitGTK des Systems.
@@ -75,7 +76,9 @@ Kurz zusammengefasst:
 - `actions[].mode`: `capture` (Ausgabe in SvcDeck) oder `terminal` (eigenes Terminalfenster)
 - `terminal`: leer = automatisch erkannt (`$TERMINAL`, kitty, foot, alacritty, wezterm, ghostty, konsole, gnome-terminal, …)
 
-**Alle starten / Alle stoppen** (Rechtsklick auf den Hintergrund) führen in jeder App die Aktion mit der ID `start` bzw. `stop` aus; Stop läuft in umgekehrter Reihenfolge.
+**Alle starten / Alle stoppen** (▶ und ■ in der Titelleiste oder Rechtsklick auf den Hintergrund) führen in jeder App die Aktion mit der ID `start` bzw. `stop` aus; Stop läuft in umgekehrter Reihenfolge. Apps, deren Statusprüfung schon den Zielzustand zeigt, werden übersprungen (Start lässt laufende aus, Stop gestoppte); Apps ohne Statusprüfung laufen immer mit.
+
+**Auswahl:** Der Häkchen-Knopf in der Titelleiste (oder Strg+Klick auf eine Kachel) schaltet den Auswahlmodus ein. Kacheln anklicken, um sie auszuwählen, dann über die Leiste unten nur diese starten oder stoppen. Esc beendet die Auswahl.
 
 ### Sicherheit
 

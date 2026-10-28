@@ -9,11 +9,13 @@
     /** null = no status check configured */
     running: boolean | null | undefined;
     busy: boolean;
-    onActivate: () => void;
+    /** undefined = not in selection mode */
+    selected?: boolean;
+    onActivate: (e: MouseEvent) => void;
     onMenu: (x: number, y: number) => void;
   }
 
-  let { app, icon, running, busy, onActivate, onMenu }: Props = $props();
+  let { app, icon, running, busy, selected, onActivate, onMenu }: Props = $props();
 
   // Icon > explicit glyph > default icon
   const glyph = $derived(app.glyph.trim().slice(0, 4));
@@ -27,7 +29,11 @@
           : t("status.unknown"),
   );
   const what = $derived(
-    app.url ? t("tile.open", { name: app.name }) : app.actions[0] ? t("tile.run", { action: app.actions[0].label }) : app.name,
+    selected !== undefined
+      ? selected
+        ? t("tile.selected", { name: app.name })
+        : t("tile.select", { name: app.name })
+      : app.url ? t("tile.open", { name: app.name }) : app.actions[0] ? t("tile.run", { action: app.actions[0].label }) : app.name,
   );
 
   function onKeydown(e: KeyboardEvent) {
@@ -44,6 +50,8 @@
   class="tile"
   data-running={running === true ? "true" : running === false ? "false" : "none"}
   data-busy={busy ? "true" : "false"}
+  data-selected={selected ? "true" : "false"}
+  aria-pressed={selected}
   aria-label="{what}. {t('tile.label', { name: app.name, status: statusText })}"
   onclick={onActivate}
   oncontextmenu={(e) => {
@@ -66,6 +74,13 @@
     {/if}
     {#if busy}
       <span class="spinner" aria-hidden="true"></span>
+    {/if}
+    {#if selected !== undefined}
+      <span class="select-mark" aria-hidden="true">
+        {#if selected}
+          <svg viewBox="0 0 24 24"><path d="m6 12.5 4 4 8-9" /></svg>
+        {/if}
+      </span>
     {/if}
   </span>
   <span class="tile-label">{app.name}</span>

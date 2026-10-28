@@ -14,6 +14,7 @@ SvcDeck is a small floating window with one tile per app or service: a systemd u
 
 - **Any command.** Every action is a bash command run in the app's folder. Templates for systemd (user and system), Docker and Docker Compose fill in start/stop/restart/status/logs for you.
 - **Status at a glance.** A dot shows whether a service is running, checked by a command (exit code 0) or a TCP port.
+- **Several at once.** Start or stop all services from the title bar, or select a few tiles and start or stop only those. Services already in that state are skipped.
 - **sudo without a terminal.** Commands that need root ask for the password in a graphical dialog (rofi, zenity, kdialog or ssh-askpass).
 - **Fits your desktop.** Follows your HyDE/wallbash colors live on Hyprland, otherwise the system light/dark preference. English and German.
 - **Small.** Tauri 2 (Rust) with a Svelte 5 UI, a single binary of a few MB using the system WebKitGTK.
@@ -106,7 +107,9 @@ Everything can be edited in the app (gear icon). The file is `~/.config/svcdeck/
 | `theme` | `auto` (HyDE colors or system), `light`, `dark` |
 | `language` | `auto` (system), `en`, `de` |
 
-**Start all / Stop all** (right-click on the background) run the action with the ID `start` or `stop` of every app; stop runs in reverse order.
+**Start all / Stop all** (▶ and ■ in the title bar, or right-click on the background) run the action with the ID `start` or `stop` of every app; stop runs in reverse order. Apps whose status check already shows the target state are skipped (start skips running apps, stop skips stopped ones); apps without a status check always run.
+
+**Selection:** the check box button in the title bar (or Ctrl+click on a tile) turns on selection mode. Click tiles to select them, then start or stop only those from the bar at the bottom. Esc ends the selection.
 
 ### Security
 
