@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/bl4z3-0o/svcdeck/compare/v0.2.0...v0.2.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* **deps:** update rust crate base64 to 0.23 ([#11](https://github.com/bl4z3-0o/svcdeck/issues/11)) ([d892b61](https://github.com/bl4z3-0o/svcdeck/commit/d892b61a72e8853ac923c9eb1eafc6bd94f7edaa))
+
 ## [0.2.0](https://github.com/bl4z3-0o/svcdeck/compare/v0.1.0...v0.2.0) (2026-10-28)
 
 
